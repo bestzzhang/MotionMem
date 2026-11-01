@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="MotionMem forecasts future trajectories and uses them as dynamic memory for long-horizon video generation.">
+  <meta name="keywords" content="MotionMem, video generation, dynamic memory, trajectory forecasting, world model">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MotionMem</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="data:,">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">MotionMem: Future Trajectory Forecasting<br>as Dynamic Memory for Video Generation</h1>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://bestzzhang.github.io/" target="_blank">Zhiyuan Zhang</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://wangguandongzheng.github.io/" target="_blank">Wangguandong Zheng</a><sup>2</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://quyans.github.io/" target="_blank">Yansong Qu</a><sup>3</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://quanjiansong.github.io/" target="_blank">Quanjian Song</a><sup>3</sup>,
+            </span>
+          </div>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://yuhaoliu7456.github.io/" target="_blank">Yuhao Liu</a><sup>1</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://yzszy.github.io/" target="_blank">Zesong Yang</a><sup>4</sup>,
+            </span>
+            <span class="author-block">
+              <a href="https://www.cityu.edu.hk/stfprofile/jingliao.htm" target="_blank">Jing Liao</a><sup>1</sup>
+            </span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>City University of Hong Kong,</span>
+            <span class="author-block"><sup>2</sup>Southeast University,</span>
+            <span class="author-block"><sup>3</sup>Xiamen University,</span>
+            <span class="author-block"><sup>4</sup>Zhejiang University</span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <span class="link-block">
+                <a href="static/pdf/MotionMem.pdf" target="_blank"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="#results" class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon"><i class="fas fa-video"></i></span>
+                  <span>Results</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <span class="button is-normal is-rounded is-dark is-soon" title="Coming soon">
+                  <span class="icon"><i class="fab fa-github"></i></span>
+                  <span>Code</span>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero teaser">
+  <div class="hero-body">
+    <div class="wide">
+      <div class="teaser-grid">
+        <div>
+          <video id="teaser" autoplay muted loop playsinline controls>
+            <source src="static/videos/swing/dynamic/case_8/result_with_camera.mp4" type="video/mp4">
+          </video>
+          <p class="teaser-kicker">A subject walks out of view, then re-enters</p>
+        </div>
+        <div>
+          <video autoplay muted loop playsinline controls>
+            <source src="static/videos/360/3p/left/case_006/result_with_camera.mp4" type="video/mp4">
+          </video>
+          <p class="teaser-kicker">A full turn around a moving character</p>
+        </div>
+      </div>
+      <p class="caption">
+        MotionMem keeps scenes and dynamic subjects consistent while generating video chunk by chunk. The camera path is shown beside each result. The trajectory of each dynamic object is predicted explicitly and used to guide generation.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Long-horizon world generation requires models to both preserve past observations and reason about how the world evolves over time. Existing memory mechanisms are effective for recalling static scenes, but are less suited to dynamic entities whose future states must be inferred before historical information can be reused. We propose MotionMem, a unified plan–retrieve–generate framework that explicitly couples future-state prediction with memory retrieval. MotionMem jointly models RGB videos and instance-level track maps, predicting future trajectories with only a single denoising step as a lightweight motion plan, which is then used to retrieve and align relevant historical appearance for subsequent RGB generation. Trajectory-Guided Dynamic Memory uses the predicted motion to retrieve and place historical object appearance alongside camera-aligned scene memory. We further distill MotionMem into a causal few-step streaming generator for efficient interactive generation. Experiments demonstrate improved long-term consistency in both scene recall and dynamic evolution, while preserving these advantages under real-time streaming generation.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="hero is-small" id="method">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3" style="text-align:center;">Method</h2>
+      <img class="method-figure" src="static/images/overview.png" alt="MotionMem plans a future trajectory in one step, updates scene and dynamic memory, then generates the next video chunk.">
+      <p class="caption">
+        One shared video diffusion transformer handles both planning and generation. The first denoising step runs in joint RGB–trajectory mode and predicts where each instance will be; the provisional RGB frame from that step is discarded. Predicted tracks then crop historical object appearance, resize it to the future location, and composite it with camera-warped scene memory. The remaining four denoising steps generate RGB only, conditioned on this updated memory. The loop runs online as the model is distilled into a causal few-step streaming generator.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="section hero" id="results">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3" style="text-align:center;">Results</h2>
+  </div>
+
+  <section class="hero is-small" id="comparison">
+    <div class="hero-body">
+      <div class="wide">
+        <div class="app-block-header">
+          <h3 class="app-block-title">Qualitative Comparison</h3>
+        </div>
+        <p class="section-intro caption">
+          The camera pans away as the subject leaves, then returns; the same subject should re-enter farther along its path. HyDRA introduces artifacts, WorldDirector tends toward rigid translation, LiveWorld can fuse inconsistent views, and the streaming baselines either drift or freeze the subject. MotionMem continues the motion and keeps the identity.
+        </p>
+        <div class="compare-stack">
+          <video autoplay muted loop playsinline controls>
+            <source src="static/videos/case1.mp4" type="video/mp4">
+          </video>
+          <video autoplay muted loop playsinline controls>
+            <source src="static/videos/case2.mp4" type="video/mp4">
+          </video>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero is-small" id="benchmarks">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="app-block-header">
+          <h3 class="app-block-title">Benchmarks</h3>
+        </div>
+        <p class="section-intro caption">
+          MBench measures dynamic memory with VQA scores: the camera turns in place so subjects leave and later re-enter. WBench measures general world-generation quality. AR is the causal streaming model and BI is the bidirectional model. Higher is better. MotionMem rows are highlighted, and the best result in each column is in bold.
+        </p>
+
+        <div class="score-block">
+          <h3>MBench</h3>
+          <div class="score-wrap">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Avg.</th>
+                  <th>Instruction</th>
+                  <th>Identity</th>
+                  <th>Background</th>
+                  <th>Number</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="group-row"><td colspan="6">Bidirectional</td></tr>
+                <tr>
+                  <td>HyDRA (1.3B)</td>
+                  <td>3.42</td><td>2.04</td><td>0.93</td><td>0.00</td><td>10.71</td>
+                </tr>
+                <tr>
+                  <td>LiveWorld (14B)</td>
+                  <td>78.64</td><td>82.65</td><td>87.04</td><td>91.30</td><td>53.57</td>
+                </tr>
+                <tr>
+                  <td>WorldDirector (14B)</td>
+                  <td>89.15</td><td class="best">92.86</td><td>94.44</td><td>80.00</td><td>89.29</td>
+                </tr>
+                <tr class="group-row"><td colspan="6">Streaming</td></tr>
+                <tr>
+                  <td>Matrix-Game 3.5 (5B)</td>
+                  <td>73.61</td><td>85.71</td><td>91.67</td><td>29.57</td><td>87.50</td>
+                </tr>
+                <tr>
+                  <td>WorldPlay (8B)</td>
+                  <td>90.15</td><td>75.51</td><td>99.07</td><td>89.57</td><td>96.43</td>
+                </tr>
+                <tr class="ours">
+                  <td>MotionMem (5B)</td>
+                  <td class="best">96.53</td><td>88.78</td><td class="best">100.00</td><td class="best">99.13</td><td class="best">98.21</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="score-block">
+          <h3>WBench</h3>
+          <div class="score-wrap">
+            <table class="score-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Avg.</th>
+                  <th>Quality</th>
+                  <th>Setting</th>
+                  <th>Interaction</th>
+                  <th>Consistency</th>
+                  <th>Physical</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="group-row"><td colspan="7">Bidirectional</td></tr>
+                <tr>
+                  <td>HyDRA (1.3B)</td>
+                  <td>50.64</td><td>61.20</td><td>43.60</td><td>46.60</td><td>72.80</td><td>29.00</td>
+                </tr>
+                <tr>
+                  <td>LiveWorld (14B)</td>
+                  <td>70.96</td><td>72.60</td><td class="best">74.00</td><td>70.20</td><td>81.00</td><td>57.00</td>
+                </tr>
+                <tr>
+                  <td>WorldDirector (14B)</td>
+                  <td>69.68</td><td>69.00</td><td>63.60</td><td>72.80</td><td>87.00</td><td>56.00</td>
+                </tr>
+                <tr class="group-row"><td colspan="7">Streaming</td></tr>
+                <tr>
+                  <td>Matrix-Game 3.5 (5B)</td>
+                  <td>68.32</td><td>70.60</td><td>65.00</td><td>66.60</td><td>79.00</td><td>60.40</td>
+                </tr>
+                <tr>
+                  <td>WorldPlay (8B)</td>
+                  <td>73.44</td><td>71.40</td><td>65.20</td><td>74.00</td><td>87.20</td><td>69.40</td>
+                </tr>
+                <tr class="ours">
+                  <td>MotionMem (5B)</td>
+                  <td class="best">75.96</td><td class="best">74.20</td><td>65.20</td><td class="best">77.60</td><td class="best">89.80</td><td class="best">73.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero is-small" id="reentry">
+    <div class="hero-body">
+      <div class="wide">
+        <div class="app-block-header">
+          <h3 class="app-block-title">Leave the View and Return</h3>
+        </div>
+        <p class="section-intro caption">
+          The camera swings so that content leaves the frame and later comes back. MBench stresses dynamic subjects that should keep their identity and count. The first-person clips stress the same turn on scene layout.
+        </p>
+        <h4 class="subhead">Dynamic subjects</h4>
+        <div class="video-grid">
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_2/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_8/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_11/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_20/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_22/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_24/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_27/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_29/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_60/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_67/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_88/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_100/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_104/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_106/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_108/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/dynamic/case_110/result_with_camera.mp4"></video>
+        </div>
+        <h4 class="subhead">First-person scenes</h4>
+        <div class="video-grid">
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/1p/case_040/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/1p/case_067/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/1p/case_081/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/swing/1p/case_146/result_with_camera.mp4"></video>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero is-small" id="memory">
+    <div class="hero-body">
+      <div class="wide">
+        <div class="app-block-header">
+          <h3 class="app-block-title">Persistent Memory</h3>
+        </div>
+        <p class="section-intro caption">
+          The same camera path is generated twice. Pass 1 writes the observed scene into memory. Pass 2 runs again with that memory, so previously seen content is recalled instead of invented.
+        </p>
+        <div class="video-grid">
+          <div>
+            <p class="video-kicker">Scene 1 · Pass 1</p>
+            <video muted loop playsinline preload="none" data-src="static/videos/revisit/1p/pass1/case_048/result_with_camera.mp4"></video>
+          </div>
+          <div>
+            <p class="video-kicker">Scene 1 · Pass 2</p>
+            <video muted loop playsinline preload="none" data-src="static/videos/revisit/1p/pass2/case_048/result_with_camera.mp4"></video>
+          </div>
+          <div>
+            <p class="video-kicker">Scene 2 · Pass 1</p>
+            <video muted loop playsinline preload="none" data-src="static/videos/revisit/1p/pass1/case_050/result_with_camera.mp4"></video>
+          </div>
+          <div>
+            <p class="video-kicker">Scene 2 · Pass 2</p>
+            <video muted loop playsinline preload="none" data-src="static/videos/revisit/1p/pass2/case_050/result_with_camera.mp4"></video>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero is-small" id="rotation">
+    <div class="hero-body">
+      <div class="wide">
+        <div class="app-block-header">
+          <h3 class="app-block-title">360° Camera Rotation</h3>
+        </div>
+        <p class="section-intro caption">
+          The camera turns a full circle, to the left or to the right, in third-person and first-person settings. Layout seen at the start should still match when the view comes back around.
+        </p>
+
+        <h4 class="subhead"> Third-person </h4>
+        <div class="video-grid">
+          <video muted loop playsinline preload="none" data-src="static/videos/360/3p/left/case_006/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/3p/left/case_028/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/3p/right/case_003/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/3p/right/case_022/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/3p/right/case_024/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/3p/right/case_026/result_with_camera.mp4"></video>
+        </div>
+
+        <h4 class="subhead">First-person </h4>
+        <div class="video-grid">
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/left/case_041/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/left/case_048/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/left/case_074/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/left/case_087/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/left/case_089/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/left/case_097/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/right/case_050/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/right/case_080/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/right/case_093/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/right/case_099/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/right/case_101/result_with_camera.mp4"></video>
+          <video muted loop playsinline preload="none" data-src="static/videos/360/1p/right/case_172/result_with_camera.mp4"></video>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<section class="section" id="bibtex">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3" style="text-align:center;">BibTeX</h2>
+    <div class="content">
+      <pre class="bibtex"><code></code></pre>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link" href="static/pdf/MotionMem.pdf">
+        <i class="fas fa-file-pdf"></i>
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            The page template is adapted from <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const videos = document.querySelectorAll("video[data-src]");
+
+    if (reduceMotion) {
+      videos.forEach((video) => {
+        video.controls = true;
+        video.preload = "metadata";
+        video.src = video.dataset.src;
+      });
+      document.querySelectorAll("video[autoplay]").forEach((video) => {
+        video.removeAttribute("autoplay");
+        video.pause();
+      });
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const video = entry.target;
+        if (entry.isIntersecting) {
+          if (!video.getAttribute("src")) {
+            video.src = video.dataset.src;
+            video.load();
+          }
+          const playAttempt = video.play();
+          if (playAttempt) playAttempt.catch(() => {});
+        } else if (!video.paused) {
+          video.pause();
+        }
+      });
+    }, { rootMargin: "240px 0px" });
+
+    videos.forEach((video) => observer.observe(video));
+  })();
+</script>
+
+</body>
+</html>
